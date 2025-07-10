@@ -1,0 +1,5 @@
+# Personal Finance Dashboard Database
+name: finance
+type: duckdb
+options:
+  filename: finance.duckdb
