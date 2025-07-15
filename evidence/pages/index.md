@@ -1,8 +1,8 @@
 ---
-title: Welcome to Evidence
+title: Personal Finance Dashboard
 ---
 
-<Details title='How to edit this page'>
+<Details title='Instructions'>
 
 This page can be found in your project at `/pages/index.md`. Make a change to the markdown file and save it to see the change take effect in your browser.
 
@@ -11,7 +11,7 @@ This page can be found in your project at `/pages/index.md`. Make a change to th
 ```sql categories
   select
       category
-  from needful_things.orders
+  from finance.orders
   group by category
 ```
 
@@ -31,7 +31,7 @@ This page can be found in your project at `/pages/index.md`. Make a change to th
       date_trunc('month', order_datetime) as month,
       sum(sales) as sales_usd,
       category
-  from needful_things.orders
+  from finance.orders
   where category like '${inputs.category.value}'
   and date_part('year', order_datetime) like '${inputs.year.value}'
   group by all
@@ -45,15 +45,3 @@ This page can be found in your project at `/pages/index.md`. Make a change to th
     y=sales_usd
     series=category
 />
-
-## What's Next?
-
-- [Connect your data sources](settings)
-- Edit/add markdown files in the `pages` folder
-- Deploy your project with [Evidence Cloud](https://evidence.dev/cloud)
-
-## Get Support
-
-- Message us on [Slack](https://slack.evidence.dev/)
-- Read the [Docs](https://docs.evidence.dev/)
-- Open an issue on [Github](https://github.com/evidence-dev/evidence)

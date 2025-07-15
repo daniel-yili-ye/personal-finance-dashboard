@@ -11,5 +11,5 @@ wheels/
 
 /logs
 
-*/data
+data/
 *.duckdb

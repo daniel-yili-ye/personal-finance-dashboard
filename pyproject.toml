@@ -7,4 +7,6 @@ requires-python = ">=3.12"
 dependencies = [
     "dbt-core>=1.10.3",
     "dbt-duckdb>=1.9.4",
+    "fastexcel>=0.14.0",
+    "polars>=1.31.0",
 ]

@@ -1,5 +1,8 @@
+from scripts.data_loader import run_data_loader
+
+
 def main():
-    print("Hello from personal-finance-dashboard!")
+    run_data_loader()
 
 
 if __name__ == "__main__":
