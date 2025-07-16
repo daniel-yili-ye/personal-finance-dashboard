@@ -160,8 +160,6 @@ class DataLoader:
 
         self.logger.info(f"AmEx preprocessing: {len(df)} rows remaining after cleanup")
 
-        print(df)
-
         if df.is_empty():
             self.logger.warning(
                 f"No data remaining after AmEx preprocessing: {file_path}"
@@ -328,28 +326,10 @@ class DataLoader:
         )
 
         # Add metadata
-        df = df.with_columns(
-            [
-                pl.lit(str(file_path)).alias("source_file"),
-                pl.lit(file_hash).alias("file_hash"),
-                pl.lit(datetime.now()).alias("loaded_at"),
-            ]
-        )
+        df = self._add_metadata(df, file_path, file_hash)
 
         # Save as partitioned Parquet
-        base_path = self.processed_data_dir / "transactions"
-
-        # Use Polars built-in Hive partitioning
-        df.write_parquet(
-            base_path,
-            use_pyarrow=True,
-            pyarrow_options={
-                "partition_cols": ["year", "month"],
-                "existing_data_behavior": "overwrite_or_ignore",
-            },
-        )
-
-        self.logger.info(f"Saved {len(df)} records using Hive partitioning")
+        self._save_partitioned_parquet(df, "american_express")
 
         self.logger.info(
             f"Successfully processed {len(df)} AmEx records from {file_path.name}"
@@ -554,7 +534,20 @@ class DataLoader:
         )
 
         # Add metadata
-        df = df.with_columns(
+        df = self._add_metadata(df, file_path, file_hash)
+
+        # Save as partitioned Parquet
+        self._save_partitioned_parquet(df, "wealthsimple")
+
+        self.logger.info(
+            f"Successfully processed {len(df)} WealthSimple records from {file_path.name}"
+        )
+
+    def _add_metadata(
+        self, df: pl.DataFrame, file_path: Path, file_hash: str
+    ) -> pl.DataFrame:
+        """Add metadata columns to the DataFrame."""
+        return df.with_columns(
             [
                 pl.lit(str(file_path)).alias("source_file"),
                 pl.lit(file_hash).alias("file_hash"),
@@ -562,7 +555,8 @@ class DataLoader:
             ]
         )
 
-        # Save as partitioned Parquet
+    def _save_partitioned_parquet(self, df: pl.DataFrame, institution: str) -> None:
+        """Save DataFrame using standard Hive partitioning."""
         base_path = self.processed_data_dir / "transactions"
 
         # Use Polars built-in Hive partitioning
@@ -576,10 +570,6 @@ class DataLoader:
         )
 
         self.logger.info(f"Saved {len(df)} records using Hive partitioning")
-
-        self.logger.info(
-            f"Successfully processed {len(df)} WealthSimple records from {file_path.name}"
-        )
 
     def _calculate_file_hash(self, file_path: str) -> str:
         """Calculate MD5 hash of file."""
