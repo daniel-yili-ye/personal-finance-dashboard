@@ -7,13 +7,12 @@ from datetime import datetime
 
 
 class DataLoader:
-    def __init__(
-        self,
-        raw_data_dir: str = "../data/raw",
-        processed_data_dir: str = "../data/processed",
-    ):
-        self.raw_data_dir = Path(raw_data_dir)
-        self.processed_data_dir = Path(processed_data_dir)
+    def __init__(self):
+        # Auto-detect project root directory
+        script_dir = Path(__file__).parent
+        project_root = script_dir.parent
+        self.raw_data_dir = project_root / "data" / "raw"
+        self.processed_data_dir = project_root / "data" / "processed"
         self.setup_logging()
         self.ensure_directories()
 
@@ -26,7 +25,13 @@ class DataLoader:
 
     def ensure_directories(self):
         """Create necessary directories."""
-        (self.processed_data_dir / "transactions").mkdir(parents=True, exist_ok=True)
+        # Create institution-specific directories
+        (self.processed_data_dir / "american_express" / "transactions").mkdir(
+            parents=True, exist_ok=True
+        )
+        (self.processed_data_dir / "wealthsimple" / "transactions").mkdir(
+            parents=True, exist_ok=True
+        )
 
     def load_all_institutions(self) -> None:
         """Load data for all institutions."""
@@ -556,8 +561,12 @@ class DataLoader:
         )
 
     def _save_partitioned_parquet(self, df: pl.DataFrame, institution: str) -> None:
-        """Save DataFrame using standard Hive partitioning."""
-        base_path = self.processed_data_dir / "transactions"
+        """Save DataFrame using institution-specific Hive partitioning."""
+        # Save to institution-specific path
+        base_path = self.processed_data_dir / institution / "transactions"
+
+        # Create directory if it doesn't exist
+        base_path.mkdir(parents=True, exist_ok=True)
 
         # Use Polars built-in Hive partitioning
         df.write_parquet(
@@ -569,7 +578,9 @@ class DataLoader:
             },
         )
 
-        self.logger.info(f"Saved {len(df)} records using Hive partitioning")
+        self.logger.info(
+            f"Saved {len(df)} {institution} records using Hive partitioning to {base_path}"
+        )
 
     def _calculate_file_hash(self, file_path: str) -> str:
         """Calculate MD5 hash of file."""
@@ -582,14 +593,18 @@ class DataLoader:
     def _is_file_already_processed(self, file_hash: str) -> bool:
         """Check if file has already been processed."""
         try:
-            transactions_path = self.processed_data_dir / "transactions"
-            if not transactions_path.exists():
-                return False
-
-            # Check if any parquet file contains this file_hash
-            df = pl.scan_parquet(str(transactions_path / "**" / "*.parquet"))
-            existing_hashes = df.select("file_hash").unique().collect()
-            return file_hash in existing_hashes.get_column("file_hash").to_list()
+            # Check in both institution directories
+            for institution in ["american_express", "wealthsimple"]:
+                transactions_path = (
+                    self.processed_data_dir / institution / "transactions"
+                )
+                if transactions_path.exists():
+                    # Check if any parquet file contains this file_hash
+                    df = pl.scan_parquet(str(transactions_path / "**" / "*.parquet"))
+                    existing_hashes = df.select("file_hash").unique().collect()
+                    if file_hash in existing_hashes.get_column("file_hash").to_list():
+                        return True
+            return False
         except Exception:
             return False
 

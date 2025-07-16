@@ -1,0 +1,61 @@
+type,category,subcategory
+Expense,Groceries,Supermarkets
+Expense,Groceries,Convenience Stores
+Expense,Groceries,Specialty Food Stores
+Expense,Dining & Restaurants,Coffee Shops
+Expense,Dining & Restaurants,Fast Food
+Expense,Dining & Restaurants,Takeout & Delivery
+Expense,Dining & Restaurants,Restaurants
+Expense,Shopping,Clothing
+Expense,Shopping,Electronics
+Expense,Shopping,Online Retail
+Expense,Shopping,Department Stores
+Expense,Shopping,Gifts
+Expense,Shopping,Beauty & Cosmetics
+Expense,Personal Care,Salons & Spas
+Expense,Personal Care,Barbershops
+Expense,Personal Care,Skincare & Grooming
+Expense,Housing & Utilities,Rent / Mortgage
+Expense,Housing & Utilities,Electricity
+Expense,Housing & Utilities,Water
+Expense,Housing & Utilities,Gas
+Expense,Housing & Utilities,Internet
+Expense,Housing & Utilities,Phone
+Expense,Housing & Utilities,Trash & Recycling
+Expense,Housing & Utilities,Home Supplies & Repairs
+Expense,Transportation,Gas & Fuel
+Expense,Transportation,Rideshare
+Expense,Transportation,Public Transit
+Expense,Transportation,Parking
+Expense,Transportation,Tolls
+Expense,Transportation,Vehicle Maintenance
+Expense,Transportation,Car Insurance
+Expense,Health & Wellness,Pharmacy
+Expense,Health & Wellness,Medical & Dental
+Expense,Health & Wellness,Health Insurance
+Expense,Health & Wellness,Gym / Fitness
+Expense,Health & Wellness,Sports
+Expense,Lifestyle & Entertainment,Streaming Services
+Expense,Lifestyle & Entertainment,Movies & Events
+Expense,Lifestyle & Entertainment,Travel
+Expense,Lifestyle & Entertainment,Accommodations
+Expense,Lifestyle & Entertainment,Subscriptions & Hobbies
+Expense,Education,Tuition
+Expense,Education,Online Courses
+Expense,Education,Books & Materials
+Expense,Financial,Bank Fees
+Expense,Financial,Loan Payments
+Investment,Financial,RRSP/TFSA Contributions
+Investment,Financial,Investments
+Transfer,Financial,Credit Card Payments
+Transfer,Financial,Internal Transfer
+Transfer,Financial,External Transfer
+Transfer,Financial,Peer-to-Peer
+Income,Income,Salary / Paycheck
+Income,Income,Freelance / Side Hustle
+Income,Income,Dividends / Investments
+Income,Income,Interest
+Income,Income,Cash Back / Rewards
+Income,Income,Tax Refund
+Income,Income,Reimbursements
+Other,Other,Other

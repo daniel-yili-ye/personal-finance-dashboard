@@ -29,6 +29,12 @@ clean-targets: # directories to be removed by `dbt clean`
 # files using the `{{ config(...) }}` macro.
 models:
   dbt_pfd:
-    # Config indicated by + and applies to all files under models/example/
-    example:
+    staging:
       +materialized: view
+
+# Register external sources as views in DuckDB
+on-run-start:
+  - "{{ register_external_sources() }}"
+
+vars:
+  project_root: "/Users/danielye/Desktop/projects/personal-finance-dashboard"

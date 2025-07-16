@@ -11,5 +11,8 @@ wheels/
 
 /logs
 
-data/
-*.duckdb
+data/processed/american_express/*
+data/processed/wealthsimple/*
+data/raw/american_express/*
+data/raw/wealthsimple/*
+*.duckdb.env

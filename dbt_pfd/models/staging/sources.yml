@@ -1,13 +1,13 @@
 version: 2
 
 sources:
-  - name: raw_data
-    description: "Raw financial data from various institutions"
+  - name: amex
+    description: "American Express credit card transaction data"
     tables:
       - name: transactions
-        description: "All transaction data from all institutions"
+        description: "American Express transaction data from Excel exports"
         external:
-          location: "data/processed/transactions/**/*.parquet"
+          location: "{{ var('project_root') }}/data/processed/american_express/transactions/**/*.parquet"
           options:
             format: "parquet"
             hive_partitioning: true
@@ -18,15 +18,62 @@ sources:
             description: "Transaction description"
           - name: amount
             description: "Transaction amount"
-          - name: institution
-            description: "Financial institution"
+          - name: cardmember
+            description: "Cardmember name"
+          - name: foreign_spend_amount
+            description: "Foreign spend amount if applicable"
+          - name: commission
+            description: "Commission charged"
+          - name: exchange_rate
+            description: "Exchange rate for foreign transactions"
+          - name: merchant
+            description: "Merchant name"
+          - name: additional_information
+            description: "Additional transaction information"
           - name: flow_type
             description: "Income or Expense"
+          - name: institution
+            description: "Financial institution"
+          - name: year
+            description: "Transaction year (for partitioning)"
+          - name: month
+            description: "Transaction month (for partitioning)"
 
+  - name: wealthsimple
+    description: "WealthSimple account transaction data"
+    tables:
+      - name: transactions
+        description: "WealthSimple transaction data from CSV exports"
+        external:
+          location: "{{ var('project_root') }}/data/processed/wealthsimple/transactions/**/*.parquet"
+          options:
+            format: "parquet"
+            hive_partitioning: true
+        columns:
+          - name: date
+            description: "Transaction date"
+          - name: description
+            description: "Transaction description"
+          - name: amount
+            description: "Transaction amount"
+          - name: balance
+            description: "Account balance after transaction"
+          - name: flow_type
+            description: "Income or Expense"
+          - name: institution
+            description: "Financial institution"
+          - name: year
+            description: "Transaction year (for partitioning)"
+          - name: month
+            description: "Transaction month (for partitioning)"
+
+  - name: reference_data
+    description: "Reference data for categorization and mapping"
+    tables:
       - name: categories
         description: "Category mapping reference data"
         external:
-          location: "data/raw/categories.csv"
+          location: "{{ var('project_root') }}/data/raw/categories.csv"
           options:
             format: "csv"
         columns:
