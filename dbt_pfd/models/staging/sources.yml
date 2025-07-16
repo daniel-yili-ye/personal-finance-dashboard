@@ -1,0 +1,38 @@
+version: 2
+
+sources:
+  - name: raw_data
+    description: "Raw financial data from various institutions"
+    tables:
+      - name: transactions
+        description: "All transaction data from all institutions"
+        external:
+          location: "data/processed/transactions/**/*.parquet"
+          options:
+            format: "parquet"
+            hive_partitioning: true
+        columns:
+          - name: date
+            description: "Transaction date"
+          - name: description
+            description: "Transaction description"
+          - name: amount
+            description: "Transaction amount"
+          - name: institution
+            description: "Financial institution"
+          - name: flow_type
+            description: "Income or Expense"
+
+      - name: categories
+        description: "Category mapping reference data"
+        external:
+          location: "data/raw/categories.csv"
+          options:
+            format: "csv"
+        columns:
+          - name: type
+            description: "Type of category"
+          - name: category
+            description: "Category"
+          - name: subcategory
+            description: "Subcategory"

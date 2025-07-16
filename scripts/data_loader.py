@@ -105,7 +105,6 @@ class DataLoader:
                 str(file_path),
                 read_options={"header_row": 11},
             )
-            print("DataFrame with headers:")
         except Exception as e:
             self.logger.error(f"Failed to read AmEx Excel file: {e}")
             return
@@ -114,77 +113,7 @@ class DataLoader:
             self.logger.warning(f"Empty AmEx file: {file_path}")
             return
 
-        # AmEx-specific preprocessing
-        df = self._preprocess_amex_data(df)
-
-        print(df)
-
-        if df.is_empty():
-            self.logger.warning(
-                f"No data remaining after AmEx preprocessing: {file_path}"
-            )
-            return
-
-        # AmEx-specific column mapping and processing
-        df = self._process_amex_columns(df)
-
-        # Add metadata
-        df = self._add_metadata(df, file_path, file_hash)
-
-        # Save as partitioned Parquet
-        self._save_partitioned_parquet(df, "american_express")
-
-        self.logger.info(
-            f"Successfully processed {len(df)} AmEx records from {file_path.name}"
-        )
-
-    def _process_wealthsimple_file(self, file_path: Path) -> None:
-        """Process a single WealthSimple CSV file."""
-        self.logger.info(f"Processing WealthSimple file: {file_path.name}")
-
-        # Check if file already processed
-        file_hash = self._calculate_file_hash(str(file_path))
-        if self._is_file_already_processed(file_hash):
-            self.logger.info(
-                f"WealthSimple file {file_path.name} already processed, skipping"
-            )
-            return
-
-        # Read CSV file
-        try:
-            df = pl.read_csv(str(file_path))
-        except Exception as e:
-            self.logger.error(f"Failed to read WealthSimple CSV file: {e}")
-            return
-
-        if df.is_empty():
-            self.logger.warning(f"Empty WealthSimple file: {file_path}")
-            return
-
-        # WealthSimple-specific preprocessing
-        df = self._preprocess_wealthsimple_data(df)
-
-        if df.is_empty():
-            self.logger.warning(
-                f"No data remaining after WealthSimple preprocessing: {file_path}"
-            )
-            return
-
-        # WealthSimple-specific column mapping and processing
-        df = self._process_wealthsimple_columns(df)
-
-        # Add metadata
-        df = self._add_metadata(df, file_path, file_hash)
-
-        # Save as partitioned Parquet
-        self._save_partitioned_parquet(df, "wealthsimple")
-
-        self.logger.info(
-            f"Successfully processed {len(df)} WealthSimple records from {file_path.name}"
-        )
-
-    def _preprocess_amex_data(self, df: pl.DataFrame) -> pl.DataFrame:
-        """American Express specific preprocessing - clean messy Excel file."""
+        # AmEx-specific preprocessing - clean messy Excel file
         self.logger.info("Applying AmEx-specific preprocessing...")
 
         # Remove completely empty rows
@@ -230,26 +159,16 @@ class DataLoader:
             )
 
         self.logger.info(f"AmEx preprocessing: {len(df)} rows remaining after cleanup")
-        return df
 
-    def _preprocess_wealthsimple_data(self, df: pl.DataFrame) -> pl.DataFrame:
-        """WealthSimple specific preprocessing - clean CSV files."""
-        self.logger.info("Applying WealthSimple-specific preprocessing...")
+        print(df)
 
-        # Remove empty rows
-        df = df.filter(~pl.all_horizontal(pl.col("*").is_null()))
+        if df.is_empty():
+            self.logger.warning(
+                f"No data remaining after AmEx preprocessing: {file_path}"
+            )
+            return
 
-        # Clean up string columns only
-        for col in df.columns:
-            if df[col].dtype == pl.String:
-                df = df.with_columns(pl.col(col).str.strip_chars())
-
-        self.logger.info(f"WealthSimple preprocessing: {len(df)} rows after cleanup")
-        return df
-
-    def _process_amex_columns(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Process AmEx-specific columns and data formatting."""
-        # AmEx column mappings (based on your actual AmEx export structure)
+        # AmEx column mappings and processing
         column_mappings = {
             "Date": "date",
             "Date Processed": "date_processed",
@@ -279,78 +198,20 @@ class DataLoader:
         if missing_cols:
             raise ValueError(f"Missing required AmEx columns: {missing_cols}")
 
-        # Process AmEx dates (your specific formats)
-        date_formats = [
-            "%d %b. %Y",  # "01 Jun. 2025" - with period
-            "%d %b %Y",  # "30 May 2025" - without period
-        ]
-        df = self._process_dates(df, date_formats)
-
-        # Process AmEx amounts (positive = expenses, negative = credits)
-        df = self._process_amex_amounts(df)
-
-        # Add derived fields
-        df = self._add_derived_fields(df, "American Express")
-
-        return df
-
-    def _process_wealthsimple_columns(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Process WealthSimple-specific columns and data formatting."""
-        # WealthSimple column mappings (based on your actual WealthSimple CSV structure)
-        column_mappings = {
-            "date": "date",
-            "transaction": "transaction",
-            "description": "description",
-            "amount": "amount",
-            "balance": "balance",
-        }
-
-        # Apply column mappings
-        rename_dict = {}
-        for old_name, new_name in column_mappings.items():
-            if old_name in df.columns:
-                rename_dict[old_name] = new_name
-
-        if rename_dict:
-            df = df.rename(rename_dict)
-
-        # Map transaction to description if needed (WealthSimple uses 'transaction' not 'description')
-        if "description" not in df.columns and "transaction" in df.columns:
-            df = df.rename({"transaction": "description"})
-
-        # Validate required columns
-        required_cols = ["date", "amount", "description"]
-        missing_cols = [col for col in required_cols if col not in df.columns]
-        if missing_cols:
-            raise ValueError(f"Missing required WealthSimple columns: {missing_cols}")
-
-        # Process WealthSimple dates (your specific format)
-        date_formats = ["%Y-%m-%d"]  # Standard ISO format from WealthSimple CSVs
-        df = self._process_dates(df, date_formats)
-
-        # Process WealthSimple amounts (positive = income, negative = expenses)
-        df = self._process_wealthsimple_amounts(df)
-
-        # Add derived fields
-        df = self._add_derived_fields(df, "WealthSimple")
-
-        return df
-
-    def _process_dates(self, df: pl.DataFrame, date_formats: List[str]) -> pl.DataFrame:
-        """Process date columns with multiple format attempts."""
+        # Process AmEx dates with multiple format attempts
         if "date" not in df.columns:
             raise ValueError("No date column found")
-
-        print(f"Original date values sample:")
-        print(df.select("date").head())
 
         # Clean up date strings first
         df = df.with_columns(
             pl.col("date").str.strip_chars().str.replace_all(r"\s+", " ")
         )
 
-        print(f"After cleaning:")
-        print(df.select("date").head())
+        # AmEx specific date formats
+        date_formats = [
+            "%d %b. %Y",  # "01 Jun. 2025" - with period
+            "%d %b %Y",  # "30 May 2025" - without period
+        ]
 
         # Try different date formats, using coalesce to combine them
         date_expr = pl.col("date")
@@ -413,13 +274,7 @@ class DataLoader:
                 ]
             )
 
-        print(f"Final date processing result:")
-        print(df.select(["date", "year", "month"]).head())
-
-        return df
-
-    def _process_amex_amounts(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Process AmEx amounts: positive = expenses, negative = credits."""
+        # Process AmEx amounts: positive = expenses, negative = credits
         if "amount" not in df.columns:
             raise ValueError("No amount column found")
 
@@ -451,10 +306,199 @@ class DataLoader:
             ]
         )
 
-        return df
+        # Add derived fields
+        df = df.with_columns(
+            [
+                # Weekend indicator
+                pl.col("date").dt.weekday().is_in([6, 7]).alias("is_weekend"),
+                # Institution identifier
+                pl.lit("American Express").alias("institution"),
+                # Transaction hash for deduplication
+                pl.concat_str(
+                    [
+                        pl.col("date").dt.strftime("%Y-%m-%d"),
+                        pl.col("description").str.slice(0, 50),
+                        pl.col("amount").cast(pl.String),
+                    ],
+                    separator="|",
+                )
+                .hash()
+                .alias("transaction_hash"),
+            ]
+        )
 
-    def _process_wealthsimple_amounts(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Process WealthSimple amounts: positive = income, negative = expenses."""
+        # Add metadata
+        df = df.with_columns(
+            [
+                pl.lit(str(file_path)).alias("source_file"),
+                pl.lit(file_hash).alias("file_hash"),
+                pl.lit(datetime.now()).alias("loaded_at"),
+            ]
+        )
+
+        # Save as partitioned Parquet
+        base_path = self.processed_data_dir / "transactions"
+
+        # Use Polars built-in Hive partitioning
+        df.write_parquet(
+            base_path,
+            use_pyarrow=True,
+            pyarrow_options={
+                "partition_cols": ["year", "month"],
+                "existing_data_behavior": "overwrite_or_ignore",
+            },
+        )
+
+        self.logger.info(f"Saved {len(df)} records using Hive partitioning")
+
+        self.logger.info(
+            f"Successfully processed {len(df)} AmEx records from {file_path.name}"
+        )
+
+    def _process_wealthsimple_file(self, file_path: Path) -> None:
+        """Process a single WealthSimple CSV file."""
+        self.logger.info(f"Processing WealthSimple file: {file_path.name}")
+
+        # Check if file already processed
+        file_hash = self._calculate_file_hash(str(file_path))
+        if self._is_file_already_processed(file_hash):
+            self.logger.info(
+                f"WealthSimple file {file_path.name} already processed, skipping"
+            )
+            return
+
+        # Read CSV file
+        try:
+            df = pl.read_csv(str(file_path))
+        except Exception as e:
+            self.logger.error(f"Failed to read WealthSimple CSV file: {e}")
+            return
+
+        if df.is_empty():
+            self.logger.warning(f"Empty WealthSimple file: {file_path}")
+            return
+
+        # WealthSimple-specific preprocessing - clean CSV files
+        self.logger.info("Applying WealthSimple-specific preprocessing...")
+
+        # Remove empty rows
+        df = df.filter(~pl.all_horizontal(pl.col("*").is_null()))
+
+        # Clean up string columns only
+        for col in df.columns:
+            if df[col].dtype == pl.String:
+                df = df.with_columns(pl.col(col).str.strip_chars())
+
+        self.logger.info(f"WealthSimple preprocessing: {len(df)} rows after cleanup")
+
+        if df.is_empty():
+            self.logger.warning(
+                f"No data remaining after WealthSimple preprocessing: {file_path}"
+            )
+            return
+
+        # WealthSimple column mappings and processing
+        column_mappings = {
+            "date": "date",
+            "transaction": "transaction",
+            "description": "description",
+            "amount": "amount",
+            "balance": "balance",
+        }
+
+        # Apply column mappings
+        rename_dict = {}
+        for old_name, new_name in column_mappings.items():
+            if old_name in df.columns:
+                rename_dict[old_name] = new_name
+
+        if rename_dict:
+            df = df.rename(rename_dict)
+
+        # Map transaction to description if needed (WealthSimple uses 'transaction' not 'description')
+        if "description" not in df.columns and "transaction" in df.columns:
+            df = df.rename({"transaction": "description"})
+
+        # Validate required columns
+        required_cols = ["date", "amount", "description"]
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            raise ValueError(f"Missing required WealthSimple columns: {missing_cols}")
+
+        # Process WealthSimple dates
+        if "date" not in df.columns:
+            raise ValueError("No date column found")
+
+        # Clean up date strings first
+        df = df.with_columns(
+            pl.col("date").str.strip_chars().str.replace_all(r"\s+", " ")
+        )
+
+        # WealthSimple specific date formats
+        date_formats = ["%Y-%m-%d"]  # Standard ISO format from WealthSimple CSVs
+
+        # Try different date formats, using coalesce to combine them
+        date_expr = pl.col("date")
+
+        # Build a coalesce expression that tries each format
+        for i, date_format in enumerate(date_formats):
+            try:
+                parsed_expr = pl.col("date").str.strptime(
+                    pl.Date, date_format, strict=False
+                )
+
+                if i == 0:
+                    # First format - use directly
+                    date_expr = parsed_expr
+                else:
+                    # Subsequent formats - coalesce with previous attempts
+                    date_expr = date_expr.fill_null(parsed_expr)
+
+                # Test this format to log success
+                temp_df = df.with_columns(parsed_expr.alias("test_date"))
+                successful_conversions = temp_df.filter(
+                    pl.col("test_date").is_not_null()
+                ).height
+
+                if successful_conversions > 0:
+                    self.logger.info(
+                        f"Format {date_format} parsed {successful_conversions} dates"
+                    )
+
+            except Exception as e:
+                self.logger.debug(f"Date format {date_format} failed: {e}")
+                continue
+
+        # Apply the combined date parsing
+        df = df.with_columns(date_expr.alias("date"))
+        final_parsed = df.filter(pl.col("date").is_not_null()).height
+
+        self.logger.info(f"Total dates successfully parsed: {final_parsed}")
+
+        if final_parsed == 0:
+            self.logger.error(
+                "No date format worked! Adding default values to avoid partition issues"
+            )
+            # Add default year/month to avoid partition errors
+            df = df.with_columns(
+                [
+                    pl.lit(None, dtype=pl.Date).alias("date"),
+                    pl.lit(1900).alias("year"),
+                    pl.lit(1).alias("month"),
+                    pl.lit("1900-01").alias("year_month"),
+                ]
+            )
+        else:
+            # Add derived date fields
+            df = df.with_columns(
+                [
+                    pl.col("date").dt.year().alias("year"),
+                    pl.col("date").dt.month().alias("month"),
+                    pl.col("date").dt.strftime("%Y-%m").alias("year_month"),
+                ]
+            )
+
+        # Process WealthSimple amounts: positive = income, negative = expenses
         if "amount" not in df.columns:
             raise ValueError("No amount column found")
 
@@ -488,16 +532,13 @@ class DataLoader:
             ]
         )
 
-        return df
-
-    def _add_derived_fields(self, df: pl.DataFrame, institution: str) -> pl.DataFrame:
-        """Add common derived fields."""
+        # Add derived fields
         df = df.with_columns(
             [
                 # Weekend indicator
                 pl.col("date").dt.weekday().is_in([6, 7]).alias("is_weekend"),
                 # Institution identifier
-                pl.lit(institution).alias("institution"),
+                pl.lit("WealthSimple").alias("institution"),
                 # Transaction hash for deduplication
                 pl.concat_str(
                     [
@@ -512,13 +553,8 @@ class DataLoader:
             ]
         )
 
-        return df
-
-    def _add_metadata(
-        self, df: pl.DataFrame, file_path: Path, file_hash: str
-    ) -> pl.DataFrame:
-        """Add metadata columns to the DataFrame."""
-        return df.with_columns(
+        # Add metadata
+        df = df.with_columns(
             [
                 pl.lit(str(file_path)).alias("source_file"),
                 pl.lit(file_hash).alias("file_hash"),
@@ -526,8 +562,7 @@ class DataLoader:
             ]
         )
 
-    def _save_partitioned_parquet(self, df: pl.DataFrame, institution: str) -> None:
-        """Save DataFrame using standard Hive partitioning."""
+        # Save as partitioned Parquet
         base_path = self.processed_data_dir / "transactions"
 
         # Use Polars built-in Hive partitioning
@@ -541,6 +576,10 @@ class DataLoader:
         )
 
         self.logger.info(f"Saved {len(df)} records using Hive partitioning")
+
+        self.logger.info(
+            f"Successfully processed {len(df)} WealthSimple records from {file_path.name}"
+        )
 
     def _calculate_file_hash(self, file_path: str) -> str:
         """Calculate MD5 hash of file."""
